@@ -1,0 +1,581 @@
+openapi: 3.1.0
+info:
+  # Do not change the title, if the title changes, the import paths will be broken
+  title: Api
+  version: 0.1.0
+  description: DevTools & Blog API
+servers:
+  - url: /api
+    description: Base API path
+tags:
+  - name: health
+    description: Health operations
+  - name: posts
+    description: Blog posts
+  - name: categories
+    description: Post categories
+  - name: tags
+    description: Post tags
+  - name: tools
+    description: Developer tools metadata
+  - name: stats
+    description: Site statistics
+  - name: contact
+    description: Contact form submissions
+  - name: newsletter
+    description: Newsletter subscriptions
+paths:
+  /healthz:
+    get:
+      operationId: healthCheck
+      tags: [health]
+      summary: Health check
+      description: Returns server health status
+      responses:
+        "200":
+          description: Healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthStatus"
+  /posts:
+    get:
+      operationId: listPosts
+      tags: [posts]
+      summary: List blog posts
+      description: List blog posts with optional filtering and pagination
+      parameters:
+        - name: search
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: category
+          in: query
+          required: false
+          description: Category slug
+          schema:
+            type: string
+        - name: tag
+          in: query
+          required: false
+          description: Tag slug
+          schema:
+            type: string
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 50
+            default: 12
+        - name: offset
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+      responses:
+        "200":
+          description: List of posts
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PostListResponse"
+  /posts/featured:
+    get:
+      operationId: listFeaturedPosts
+      tags: [posts]
+      summary: Featured posts
+      description: Hand-picked featured posts for the homepage spotlight
+      responses:
+        "200":
+          description: Featured posts
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/PostSummary"
+  /posts/recent:
+    get:
+      operationId: listRecentPosts
+      tags: [posts]
+      summary: Recent posts
+      description: Most recently published posts
+      parameters:
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 20
+            default: 6
+      responses:
+        "200":
+          description: Recent posts
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/PostSummary"
+  /posts/popular:
+    get:
+      operationId: listPopularPosts
+      tags: [posts]
+      summary: Popular posts
+      description: Most viewed posts across the blog
+      parameters:
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 20
+            default: 5
+      responses:
+        "200":
+          description: Popular posts
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/PostSummary"
+  /posts/{slug}:
+    get:
+      operationId: getPostBySlug
+      tags: [posts]
+      summary: Get a post by its slug
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Post detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PostDetail"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /posts/{slug}/related:
+    get:
+      operationId: getRelatedPosts
+      tags: [posts]
+      summary: Related posts
+      description: Posts related to the given post by category and tags (returns up to 4)
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Related posts
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/PostSummary"
+  /categories:
+    get:
+      operationId: listCategories
+      tags: [categories]
+      summary: List categories
+      description: All categories with post counts
+      responses:
+        "200":
+          description: Categories
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CategoryWithCount"
+  /tags:
+    get:
+      operationId: listTags
+      tags: [tags]
+      summary: List tags
+      description: All tags with post counts
+      responses:
+        "200":
+          description: Tags
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/TagWithCount"
+  /tools:
+    get:
+      operationId: listTools
+      tags: [tools]
+      summary: List developer tools
+      description: All available developer tools metadata
+      responses:
+        "200":
+          description: Tools
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Tool"
+  /tools/{slug}:
+    get:
+      operationId: getToolBySlug
+      tags: [tools]
+      summary: Get a tool by its slug
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Tool detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Tool"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /stats:
+    get:
+      operationId: getSiteStats
+      tags: [stats]
+      summary: Site stats
+      description: Aggregate stats for the homepage (post count, tool count, total reads, categories)
+      responses:
+        "200":
+          description: Stats
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SiteStats"
+  /contact:
+    post:
+      operationId: submitContactForm
+      tags: [contact]
+      summary: Submit a contact form
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ContactSubmissionInput"
+      responses:
+        "201":
+          description: Submitted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ContactSubmission"
+  /newsletter/subscribe:
+    post:
+      operationId: subscribeToNewsletter
+      tags: [newsletter]
+      summary: Subscribe to the newsletter
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/NewsletterSubscriptionInput"
+      responses:
+        "201":
+          description: Subscribed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NewsletterSubscription"
+components:
+  schemas:
+    HealthStatus:
+      type: object
+      properties:
+        status:
+          type: string
+      required:
+        - status
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+        message:
+          type: string
+      required:
+        - error
+        - message
+    Author:
+      type: object
+      properties:
+        name:
+          type: string
+        avatarUrl:
+          type: string
+        bio:
+          type: string
+      required:
+        - name
+        - avatarUrl
+        - bio
+    Category:
+      type: object
+      properties:
+        id:
+          type: integer
+        slug:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        color:
+          type: string
+      required:
+        - id
+        - slug
+        - name
+        - description
+        - color
+    CategoryWithCount:
+      allOf:
+        - $ref: "#/components/schemas/Category"
+        - type: object
+          properties:
+            postCount:
+              type: integer
+          required:
+            - postCount
+    Tag:
+      type: object
+      properties:
+        id:
+          type: integer
+        slug:
+          type: string
+        name:
+          type: string
+      required:
+        - id
+        - slug
+        - name
+    TagWithCount:
+      allOf:
+        - $ref: "#/components/schemas/Tag"
+        - type: object
+          properties:
+            postCount:
+              type: integer
+          required:
+            - postCount
+    PostSummary:
+      type: object
+      properties:
+        id:
+          type: integer
+        slug:
+          type: string
+        title:
+          type: string
+        excerpt:
+          type: string
+        coverImageUrl:
+          type: string
+        readingMinutes:
+          type: integer
+        viewsCount:
+          type: integer
+        publishedAt:
+          type: string
+          format: date-time
+        featured:
+          type: boolean
+        category:
+          $ref: "#/components/schemas/Category"
+        tags:
+          type: array
+          items:
+            $ref: "#/components/schemas/Tag"
+        author:
+          $ref: "#/components/schemas/Author"
+      required:
+        - id
+        - slug
+        - title
+        - excerpt
+        - coverImageUrl
+        - readingMinutes
+        - viewsCount
+        - publishedAt
+        - featured
+        - category
+        - tags
+        - author
+    PostDetail:
+      allOf:
+        - $ref: "#/components/schemas/PostSummary"
+        - type: object
+          properties:
+            content:
+              type: string
+              description: Markdown content of the post
+            seoTitle:
+              type: string
+            seoDescription:
+              type: string
+          required:
+            - content
+            - seoTitle
+            - seoDescription
+    PostListResponse:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/PostSummary"
+        total:
+          type: integer
+        limit:
+          type: integer
+        offset:
+          type: integer
+      required:
+        - items
+        - total
+        - limit
+        - offset
+    Tool:
+      type: object
+      properties:
+        slug:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        category:
+          type: string
+          description: Tool category (e.g. "Encoding", "Generators", "Formatting", "Color", "Text")
+        icon:
+          type: string
+          description: lucide-react icon name
+        keywords:
+          type: array
+          items:
+            type: string
+      required:
+        - slug
+        - name
+        - description
+        - category
+        - icon
+        - keywords
+    SiteStats:
+      type: object
+      properties:
+        postCount:
+          type: integer
+        toolCount:
+          type: integer
+        categoryCount:
+          type: integer
+        totalReads:
+          type: integer
+      required:
+        - postCount
+        - toolCount
+        - categoryCount
+        - totalReads
+    ContactSubmissionInput:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 120
+        email:
+          type: string
+          format: email
+        subject:
+          type: string
+          minLength: 1
+          maxLength: 200
+        message:
+          type: string
+          minLength: 1
+          maxLength: 4000
+      required:
+        - name
+        - email
+        - subject
+        - message
+    ContactSubmission:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        email:
+          type: string
+        subject:
+          type: string
+        message:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - name
+        - email
+        - subject
+        - message
+        - createdAt
+    NewsletterSubscriptionInput:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+      required:
+        - email
+    NewsletterSubscription:
+      type: object
+      properties:
+        id:
+          type: integer
+        email:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - email
+        - createdAt
