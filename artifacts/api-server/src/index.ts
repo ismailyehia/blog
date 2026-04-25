@@ -2,32 +2,24 @@ import app from "./app";
 import { logger } from "./lib/logger";
 import { connectDB } from "@workspace/db";
 
-const rawPort = process.env["PORT"];
+const port = Number(process.env["PORT"] || "8080");
 
-if (!rawPort) {
-  throw new Error(
-    "PORT environment variable is required but was not provided.",
-  );
-}
-
-const port = Number(rawPort);
-
-if (Number.isNaN(port) || port <= 0) {
-  throw new Error(`Invalid PORT value: "${rawPort}"`);
-}
-
-connectDB()
-  .then(() => {
-    app.listen(port, (err) => {
-      if (err) {
-        logger.error({ err }, "Error listening on port");
-        process.exit(1);
-      }
-
-      logger.info({ port }, "Server listening");
+// Start server first so Render detects the port
+const server = app.listen(port, "0.0.0.0", () => {
+  logger.info({ port }, "Server listening on port");
+  
+  // Now attempt to connect to the database
+  connectDB()
+    .then(() => {
+      logger.info("Successfully connected to MongoDB");
+    })
+    .catch((err) => {
+      logger.error({ err }, "Failed to connect to MongoDB - the app may not function correctly");
+      // Don't exit here, let the developer see the error in logs and Render keep the service "up"
     });
-  })
-  .catch((err) => {
-    logger.error({ err }, "Failed to connect to MongoDB");
-    process.exit(1);
-  });
+});
+
+server.on('error', (err) => {
+  logger.error({ err }, "Server failed to start");
+  process.exit(1);
+});
